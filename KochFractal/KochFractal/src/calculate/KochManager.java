@@ -64,7 +64,7 @@ public class KochManager implements Observer {
             @Override public void run() {
                 synchronized(getCurrentInstance())
                 {
-                    try{
+                    try {
                         final TimeStamp ts = new TimeStamp();
                         ts.setBegin();
                         getCurrentInstance().wait();
@@ -104,9 +104,11 @@ public class KochManager implements Observer {
     {
         if(count >= 3)
         {
+            mContext.clearKochPanel();
+            
             TimeStamp timer = new TimeStamp();
             timer.setBegin();
-            mContext.clearKochPanel();
+            
             for(Edge edge : edgeList)
             {
                 mContext.drawEdge(edge);
@@ -119,9 +121,12 @@ public class KochManager implements Observer {
 
     @Override
     public void update(Observable o, Object arg) {
-        Edge edge = (Edge) arg;
-        edgeList.add(edge);
-        System.out.print("Start: (" + edge.X1 + "," + edge.Y1 + "), End: (" + edge.X2 + "," + edge.Y2 + ")");
+//        Edge edge = (Edge) arg;
+//        edgeList.add(edge);
+//        System.out.print("Start: (" + edge.X1 + "," + edge.Y1 + "), End: (" + edge.X2 + "," + edge.Y2 + ")");
+        synchronized(this) {
+            this.edgeList.add((Edge)arg);
+        }
 
     }
     
