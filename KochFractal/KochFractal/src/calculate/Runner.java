@@ -19,9 +19,10 @@ public class Runner implements Runnable {
     final KochManager manager;
     final GeneratePart part;
     
-    public Runner(KochFractal koch, KochManager manager, GeneratePart part)
+    public Runner(int level,KochManager manager, GeneratePart part)
     {
-        this.koch = koch;
+        koch = new KochFractal();
+        koch.setLevel(level);
         this.manager = manager;
         this.part = part;
     }

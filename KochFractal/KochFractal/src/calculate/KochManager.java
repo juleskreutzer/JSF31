@@ -87,11 +87,11 @@ public class KochManager implements Observer {
         
         threads.add(end);
         
-        Thread t1 = new Thread(new Runner(koch1, this, GeneratePart.BOTTOM));
+        Thread t1 = new Thread(new Runner(nextLevel, this, GeneratePart.BOTTOM));
         threads.add(t1);
-        Thread t2 = new Thread(new Runner(koch2, this, GeneratePart.LEFT));
+        Thread t2 = new Thread(new Runner(nextLevel, this, GeneratePart.LEFT));
         threads.add(t2);
-        Thread t3 = new Thread(new Runner(koch3, this, GeneratePart.RIGHT));
+        Thread t3 = new Thread(new Runner(nextLevel, this, GeneratePart.RIGHT));
         threads.add(t3);
         
         end.start();
@@ -126,6 +126,7 @@ public class KochManager implements Observer {
 //        System.out.print("Start: (" + edge.X1 + "," + edge.Y1 + "), End: (" + edge.X2 + "," + edge.Y2 + ")");
         synchronized(this) {
             this.edgeList.add((Edge)arg);
+            
         }
 
     }
