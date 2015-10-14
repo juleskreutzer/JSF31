@@ -14,90 +14,72 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author juleskreutzer
  */
 public class RWMonitor {
-    private int activeReaders;
-    private int activeWriters;
-    private int waitingWriters;
-    private int waitingReaders;
-    private Lock monLock = new ReentrantLock();
-    private Condition okToRead = monLock.newCondition();
-    private Condition okToWrite = monLock.newCondition();
+    private int readersActive;
+    private int writersActive;
+    private int readersWaiting;
+    private int writersWaiting;
+    Lock monLock = new ReentrantLock();
+    Condition okToRead = monLock.newCondition();
+    Condition okToWrite = monLock.newCondition();
+
+
     
-    public RWMonitor()
-    {
-        activeReaders = 0;
-        activeWriters = 0;
-        waitingWriters = 0;
-        waitingReaders = 0;
-        
+    public RWMonitor(){
+        readersActive = 0;
+        writersActive = 0;
+        readersWaiting = 0;
     }
     
-    public void enterReader() throws InterruptedException
-    {
+    public void enterReader() throws InterruptedException{
+        monLock.lock();
+        try {
+            while (writersActive > 0){
+            readersWaiting++;
+            okToRead.await(); 
+            readersWaiting--;
+        }    
+            readersActive++;
+        }  
+        finally {
+            monLock.unlock();  
+        }
+    }
+    public void exitReader() {
         monLock.lock();
         try{
-            while(activeWriters > 0)
-            {
-                waitingReaders++;
-                okToRead.await();
-                waitingReaders--;
+            readersActive--;
+            if (readersActive == 0){
+                okToWrite.signal();
             }
-            activeReaders++;
+        }
+        finally{
+            monLock.unlock();
+        }
+    }
+    public void enterWriter() throws InterruptedException{
+        monLock.lock();
+        try{
+            while (writersActive > 0 || readersActive > 0)
+            {
+                writersWaiting++;
+                okToWrite.await();
+                writersWaiting--;
+            }
+            writersActive++;
         }
         finally{
             monLock.unlock();
         }
     }
     
-    public void exitReader()
-    {
+    public void exitWriter(){
         monLock.lock();
         try{
-            activeReaders--;
-            while(activeReaders == 0)
-            {
-                okToWrite.signal();
-            }
+            writersActive--;
+            if (writersWaiting > 0) okToWrite.signal();
+            else okToRead.signal();
         }
-        finally
-        {
-            monLock.unlock();
-        }
-    }
-    
-    public void enterWriter() throws InterruptedException
-    {
-        monLock.lock();
-        try{
-            while(activeWriters > 0 || activeReaders > 0)
-            {
-                waitingWriters++;
-                okToWrite.await();
-                waitingWriters--;
-            }
-            activeWriters++;
-        }
-        finally
-        {
-            monLock.unlock();
-        }
-    }
-    
-    public void exitWriter()
-    {
-        monLock.lock();
-        try{
-            activeWriters--;
-            if(waitingWriters > 0)
-            {
-                okToRead.signal();
-            }
-            else
-            {
-                okToWrite.signal();
-            }
-        }
-        finally
-        {
+        finally{
             monLock.unlock();
         }
     }
