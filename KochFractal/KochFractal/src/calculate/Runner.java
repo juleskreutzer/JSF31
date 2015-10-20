@@ -6,56 +6,77 @@
 package calculate;
 
 import calculate.KochManager.GeneratePart;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CyclicBarrier;
 
 /**
  *
  * @author juleskreutzer
  */
-public class Runner implements Runnable {
+public class Runner implements Callable<List<Edge>>, Observer {
     
     final KochFractal koch;
-    final KochManager manager;
     final GeneratePart part;
+    final CyclicBarrier barrier;
+    private List<Edge> edges;
     
-    public Runner(int level,KochManager manager, GeneratePart part)
+    public Runner(int level, GeneratePart part, CyclicBarrier barrier)
     {
-        koch = new KochFractal();
-        koch.setLevel(level);
-        this.manager = manager;
+        this.koch = new KochFractal();
+        this.koch.setLevel(level);
+        this.koch.addObserver((Observer) this);
+        this.edges = new ArrayList<>();
         this.part = part;
+        this.barrier = barrier;
     }
     
+    
+
     @Override
-    public void run() {
-        try {
+    public void update(Observable o, Object arg) {
+        synchronized(this)
+        {
+            edges.add((Edge)arg);
+        }
+    }
+
+    @Override
+    public List<Edge> call() throws Exception {
+        try{
             if(Thread.interrupted())
-                throw new InterruptedException("Oops.. Thread interrupted");
+                System.out.print("Thread screwed up!");
             
             switch(part)
             {
                 case BOTTOM:
                     koch.generateBottomEdge();
                     break;
-                case RIGHT:
-                    koch.generateRightEdge();
-                    break;
                 case LEFT:
                     koch.generateLeftEdge();
                     break;
+                case RIGHT:
+                    koch.generateRightEdge();
+                    break;
                 default:
-                    throw new Exception("Hmm.. Switch screwed up!");
+                    throw new Exception("Which edge did you try?");
             }
-            synchronized(manager) {
-            if(manager.addCount() >= 3)
-                manager.notify();
-            } 
+            
+            barrier.await();
         }
-        catch(Exception e)
+        catch(InterruptedException ex)
         {
-            System.out.print(e.toString());
+            System.out.print(ex.toString());
         }
+        catch(Exception ex)
+        {
+            System.out.print(ex.toString());
+        }
+        
+        return edges;
     }
     
 }

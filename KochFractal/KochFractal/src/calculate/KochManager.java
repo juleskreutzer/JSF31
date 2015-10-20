@@ -9,6 +9,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import javafx.application.Platform;
 import jsf31kochfractalfx.JSF31KochFractalFX;
 import timeutil.TimeStamp;
@@ -21,44 +25,42 @@ public class KochManager implements Observer {
 
     private JSF31KochFractalFX mContext;
     private List<Edge> edgeList;
-    
+    private int count;
     private KochFractal koch;
     private KochFractal koch1;
     private KochFractal koch2;
     private KochFractal koch3;
-    private int count;
-    private List<Thread> threads;
+    //private List<Thread> threads;
+    private CyclicBarrier barrier;
+    private ExecutorService executorService;
+    
     
     public KochManager(JSF31KochFractalFX mContext)
     {
         this.mContext = mContext;
         edgeList = new ArrayList<>();
-        threads = new ArrayList<>();
+        //threads = new ArrayList<>();
         
         this.koch = new KochFractal();
         this.koch.addObserver(this);
-        this.koch1 = new KochFractal();
-        this.koch1.addObserver(this);
-        this.koch2 = new KochFractal();
-        this.koch2.addObserver(this);
-        this.koch3 = new KochFractal();
-        this.koch3.addObserver(this);
+                
         this.count = 0;
-        
-        
+        this.barrier = new CyclicBarrier(3);
+        this.executorService = Executors.newFixedThreadPool(3);
     }
     
     public void ChangeLevel(int nextLevel)
     {
-        clearAllThreads();
-        resetCount();
+        //clearAllThreads();
+        mContext.clearKochPanel();
         koch.setLevel(nextLevel);
-        koch1.setLevel(nextLevel);
-        koch2.setLevel(nextLevel);
-        koch3.setLevel(nextLevel);
         
         this.edgeList.clear();
  
+        // new threads
+        final Future<List<Edge>> bottom = executorService.submit(new Runner(koch.getLevel(), GeneratePart.BOTTOM, barrier));
+        final Future<List<Edge>> left = executorService.submit(new Runner(koch.getLevel(), GeneratePart.LEFT, barrier));
+        final Future<List<Edge>> right = executorService.submit(new Runner(koch.getLevel(), GeneratePart.RIGHT, barrier));
         
         Thread end = new Thread(new Runnable() {
             @Override public void run() {
@@ -67,7 +69,9 @@ public class KochManager implements Observer {
                     try {
                         final TimeStamp ts = new TimeStamp();
                         ts.setBegin();
-                        getCurrentInstance().wait();
+                        edgeList.addAll(bottom.get());
+                        edgeList.addAll(left.get());
+                        edgeList.addAll(right.get());
                         ts.setEnd();
                         
                         Platform.runLater(new Runnable() {
@@ -84,26 +88,12 @@ public class KochManager implements Observer {
                 }
             }
         });
-        
-        threads.add(end);
-        
-        Thread t1 = new Thread(new Runner(nextLevel, this, GeneratePart.BOTTOM));
-        threads.add(t1);
-        Thread t2 = new Thread(new Runner(nextLevel, this, GeneratePart.LEFT));
-        threads.add(t2);
-        Thread t3 = new Thread(new Runner(nextLevel, this, GeneratePart.RIGHT));
-        threads.add(t3);
-        
         end.start();
-        t1.start();
-        t2.start();
-        t3.start();
     }
     
     public void drawEdges()
     {
-        if(count >= 3)
-        {
+        
             mContext.clearKochPanel();
             
             TimeStamp timer = new TimeStamp();
@@ -116,7 +106,7 @@ public class KochManager implements Observer {
             timer.setEnd();
             mContext.setTextDraw(timer.toString());
             mContext.setTextNrEdges(String.format("%d", this.koch.getNrOfEdges()));
-        }
+        
     }
 
     @Override
@@ -133,7 +123,7 @@ public class KochManager implements Observer {
     
     /**
      * Let all threads disappear - DIE!
-     */
+    
     public synchronized void clearAllThreads()
     {
         for(Thread t : threads)
@@ -143,10 +133,11 @@ public class KochManager implements Observer {
         
         threads.clear();
     }
+    * */
     
     /**
      * Set count back to 0
-     */
+    */
     public synchronized void resetCount()
     {
         this.count = 0;
@@ -155,7 +146,7 @@ public class KochManager implements Observer {
     /**
      * Increase count by 1
      * @return current count
-     */
+    */
     public synchronized int addCount()
     {
         this.count++;
