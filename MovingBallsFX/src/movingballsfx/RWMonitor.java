@@ -34,9 +34,9 @@ public class RWMonitor {
         monLock.lock();
         try {
             while (writersActive > 0){
-            readersWaiting++;
+            //readersWaiting++;
             okToRead.await(); 
-            readersWaiting--;
+            //readersWaiting--;
         }    
             readersActive++;
         }  
@@ -59,25 +59,25 @@ public class RWMonitor {
     public void enterWriter() throws InterruptedException{
         monLock.lock();
         try{
+            writersWaiting++;
             while (writersActive > 0 || readersActive > 0)
             {
-                writersWaiting++;
                 okToWrite.await();
-                writersWaiting--;
             }
             writersActive++;
         }
         finally{
+            writersWaiting--;
             monLock.unlock();
         }
     }
     
-    public void exitWriter(){
+    public void exitWriter() throws InterruptedException{
         monLock.lock();
         try{
             writersActive--;
             if (writersWaiting > 0) okToWrite.signal();
-            else okToRead.signal();
+            else okToRead.signalAll();
         }
         finally{
             monLock.unlock();
