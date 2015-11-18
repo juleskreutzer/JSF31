@@ -14,6 +14,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import javafx.application.Platform;
+import javafx.concurrent.Task;
 import jsf31kochfractalfx.JSF31KochFractalFX;
 import timeutil.TimeStamp;
 
@@ -58,7 +59,7 @@ public class KochManager implements Observer {
         this.edgeList.clear();
  
         // new threads
-        final Future<List<Edge>> bottom = executorService.submit(new Runner(koch.getLevel(), GeneratePart.BOTTOM, barrier));
+        final Task<List<Edge>> bottom = executorService.submit(new Runner(koch.getLevel(), GeneratePart.BOTTOM, barrier));
         final Future<List<Edge>> left = executorService.submit(new Runner(koch.getLevel(), GeneratePart.LEFT, barrier));
         final Future<List<Edge>> right = executorService.submit(new Runner(koch.getLevel(), GeneratePart.RIGHT, barrier));
         

@@ -12,12 +12,13 @@ import java.util.Observable;
 import java.util.Observer;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
+import javafx.concurrent.Task;
 
 /**
  *
  * @author juleskreutzer
  */
-public class Runner implements Callable<List<Edge>>, Observer {
+public class Runner extends Task<List<Edge>> implements Observer {
     
     final KochFractal koch;
     final GeneratePart part;
