@@ -15,6 +15,7 @@ import javafx.scene.Scene;
 import javafx.scene.canvas.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.input.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
@@ -34,6 +35,7 @@ public class JSF31KochFractalFX extends Application {
     private double startPressedY = 0.0;
     private double lastDragX = 0.0;
     private double lastDragY = 0.0;
+    private final ProgressBar bar = new ProgressBar(); 
 
     // Koch manager
     // TO DO: Create class KochManager in package calculate
@@ -72,7 +74,7 @@ public class JSF31KochFractalFX extends Application {
         
         // Drawing panel for Koch fractal
         kochPanel = new Canvas(kpWidth,kpHeight);
-        grid.add(kochPanel, 0, 3, 25, 1);
+        grid.add(kochPanel, 0, 4, 25, 1);
         
         // Labels to present number of edges for Koch fractal
         labelNrEdges = new Label("Nr edges:");
@@ -154,6 +156,9 @@ public class JSF31KochFractalFX extends Application {
                 kochPanelMouseDragged(event);
             }
         });
+        //Adding a progress bar
+        bar.prefWidthProperty().bind(grid.widthProperty().subtract(82.5));
+        grid.add(bar, 0, 3, 25, 1);
         
         // Create Koch manager and set initial level
         resetZoom();
