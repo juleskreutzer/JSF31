@@ -34,6 +34,11 @@ public class KochManager implements Observer {
     //private List<Thread> threads;
     private CyclicBarrier barrier;
     private ExecutorService executorService;
+    //Three tasks for the edges
+    private Task taskLeft = null;
+    private Task taskBottom = null;
+    private Task taskRight = null;
+    TimeStamp tsDraw = new TimeStamp();
     
     
     public KochManager(JSF31KochFractalFX mContext)
@@ -50,6 +55,10 @@ public class KochManager implements Observer {
         this.executorService = Executors.newFixedThreadPool(3);
     }
     
+    public int getLevel() {
+        return koch.getLevel();
+    }
+    
     public void ChangeLevel(int nextLevel)
     {
         //clearAllThreads();
@@ -59,37 +68,77 @@ public class KochManager implements Observer {
         this.edgeList.clear();
  
         // new threads
-        final Task<List<Edge>> bottom = executorService.submit(new Runner(koch.getLevel(), GeneratePart.BOTTOM, barrier));
-        final Future<List<Edge>> left = executorService.submit(new Runner(koch.getLevel(), GeneratePart.LEFT, barrier));
-        final Future<List<Edge>> right = executorService.submit(new Runner(koch.getLevel(), GeneratePart.RIGHT, barrier));
+//        final Task<List<Edge>> bottom = executorService.submit(new Runner(koch.getLevel(), GeneratePart.BOTTOM, barrier));
+//        final Future<List<Edge>> left = executorService.submit(new Runner(koch.getLevel(), GeneratePart.LEFT, barrier));
+//        final Future<List<Edge>> right = executorService.submit(new Runner(koch.getLevel(), GeneratePart.RIGHT, barrier));
         
-        Thread end = new Thread(new Runnable() {
-            @Override public void run() {
-                synchronized(getCurrentInstance())
-                {
-                    try {
-                        final TimeStamp ts = new TimeStamp();
-                        ts.setBegin();
-                        edgeList.addAll(bottom.get());
-                        edgeList.addAll(left.get());
-                        edgeList.addAll(right.get());
-                        ts.setEnd();
-                        
-                        Platform.runLater(new Runnable() {
-                            @Override public void run() {
-                                mContext.setTextCalc(ts.toString());
-                            }
-                        });
-                        mContext.requestDrawEdges();
-                    }
-                    catch(Exception ex)
-                    {
-                        System.out.print(ex.toString());
-                    }
-                }
-            }
-        });
-        end.start();
+        TimeStamp ts = new TimeStamp();
+        ts.setBegin();
+        
+        if (taskLeft != null && taskRight != null && taskBottom != null)
+        {
+            taskLeft.cancel();
+            taskRight.cancel();
+            taskBottom.cancel();
+        }
+        
+        createAllTasks();
+        tsDraw.setBegin();
+        startTasks();
+
+
+        ts.setEnd();
+        mContext.setTextCalc(ts.toString());
+    }
+    
+    /**
+     * Three tasks have been created, are now started.
+     */
+    public void startTasks() {
+        Thread thLeft = new Thread(taskLeft);
+        Thread thRight = new Thread(taskRight);
+        Thread thBottom = new Thread(taskBottom);
+
+        executorService.submit(thLeft);
+        executorService.submit(thRight);
+        executorService.submit(thBottom);
+
+
+    }
+    
+    /**
+     * Create three tasks, and in darkness bind them.
+     */
+    public void createAllTasks()
+    {
+        if (taskLeft != null) {
+            mContext.getProgressBarLeft().progressProperty().unbind();
+            mContext.getLblLeftCalc().textProperty().unbind();
+        }
+        if (taskRight != null) {
+            mContext.getProgressBarRight().progressProperty().unbind();
+            mContext.getLblRightCalc().textProperty().unbind();
+        }
+        if (taskBottom != null) {
+            mContext.getProgressBarBottom().progressProperty().unbind();
+            mContext.getLblBottomCalc().textProperty().unbind();
+        }
+
+        taskLeft = new calcTask("Left", this);
+        taskRight = new calcTask("Right", this);
+        taskBottom = new calcTask("Bottom", this);
+
+        mContext.getProgressBarLeft().setProgress(0);
+        mContext.getProgressBarLeft().progressProperty().bind(taskLeft.progressProperty());
+        mContext.getLblLeftCalc().textProperty().bind(taskLeft.messageProperty());
+
+        mContext.getProgressBarRight().setProgress(0);
+        mContext.getProgressBarRight().progressProperty().bind(taskRight.progressProperty());
+        mContext.getLblRightCalc().textProperty().bind(taskRight.messageProperty());
+
+        mContext.getProgressBarBottom().setProgress(0);
+        mContext.getProgressBarBottom().progressProperty().bind(taskBottom.progressProperty());
+        mContext.getLblBottomCalc().textProperty().bind(taskBottom.messageProperty());
     }
     
     public void drawEdges()
@@ -109,6 +158,10 @@ public class KochManager implements Observer {
             mContext.setTextNrEdges(String.format("%d", this.koch.getNrOfEdges()));
         
     }
+    
+    public void drawEdge(Edge e) {
+        mContext.drawWhiteEdge(e);
+    }
 
     @Override
     public void update(Observable o, Object arg) {
@@ -118,6 +171,25 @@ public class KochManager implements Observer {
         synchronized(this) {
             this.edgeList.add((Edge)arg);
             
+        }
+
+    }
+    
+    public Task getTaskLeft() {
+        return taskLeft;
+    }
+    public Task getTaskRight() {
+        return taskRight;
+    }
+    public Task getTaskBottom() {
+        return taskBottom;
+    }
+    
+    public synchronized void signalEnd() {
+        count++;
+        if (count >= 3) {
+            mContext.requestDrawEdges();
+            count = 0;
         }
 
     }
@@ -139,6 +211,11 @@ public class KochManager implements Observer {
     /**
      * Set count back to 0
     */
+    
+    public synchronized void addEdge(Edge e) {
+        edgeList.add(e);
+    }
+    
     public synchronized void resetCount()
     {
         this.count = 0;

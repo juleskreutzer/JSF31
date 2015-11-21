@@ -18,6 +18,8 @@ import javafx.concurrent.Task;
  *
  * @author juleskreutzer
  */
+
+//Not used anymore, has been replaced by calcTask
 public class Runner extends Task<List<Edge>> implements Observer {
     
     final KochFractal koch;

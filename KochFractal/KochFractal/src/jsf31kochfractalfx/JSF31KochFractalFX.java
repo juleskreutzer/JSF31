@@ -7,6 +7,7 @@ package jsf31kochfractalfx;
 import calculate.*;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -35,7 +36,6 @@ public class JSF31KochFractalFX extends Application {
     private double startPressedY = 0.0;
     private double lastDragX = 0.0;
     private double lastDragY = 0.0;
-    private final ProgressBar bar = new ProgressBar(); 
 
     // Koch manager
     // TO DO: Create class KochManager in package calculate
@@ -53,10 +53,25 @@ public class JSF31KochFractalFX extends Application {
     private Label labelDraw;
     private Label labelDrawText;
     
+    //Labels for progress bar
+    private Label lblLeftCalc;
+    private Label lblRightCalc;
+    private Label lblBottomCalc;
+    
     // Koch panel and its size
     private Canvas kochPanel;
     private final int kpWidth = 500;
     private final int kpHeight = 500;
+    
+    //ProgressBar
+    private final ProgressBar progressBarLeft = new ProgressBar();
+    private final ProgressBar progressBarRight = new ProgressBar();
+    private final ProgressBar progressBarBottom = new ProgressBar();
+    
+    //Tasks 
+    private Task taskLeft = null;
+    private Task taskRight = null;
+    private Task taskBottom = null;
     
     @Override
     public void start(Stage primaryStage) {
@@ -156,9 +171,25 @@ public class JSF31KochFractalFX extends Application {
                 kochPanelMouseDragged(event);
             }
         });
-        //Adding a progress bar
-        bar.prefWidthProperty().bind(grid.widthProperty().subtract(82.5));
-        grid.add(bar, 0, 3, 25, 1);
+        //Adding progress bars and their info
+        Label LeftLabel = new Label("Left Progress");
+        lblLeftCalc = new Label(". . . . .");
+        grid.add(lblLeftCalc, 7, 10);
+        grid.add(LeftLabel, 1, 5);
+        grid.add(progressBarLeft, 2, 5);
+
+        Label RightLabel = new Label("Right Progress");
+        lblRightCalc = new Label(". . . . .");
+        grid.add(lblRightCalc, 7, 11);
+        grid.add(RightLabel, 1, 6);
+        grid.add(progressBarRight, 2, 6);
+
+        Label BottomLabel = new Label("Bottom Progress");
+        lblBottomCalc = new Label(". . . . .");
+        grid.add(lblBottomCalc, 7, 12);
+        grid.add(BottomLabel, 1, 7);
+        grid.add(progressBarBottom, 2, 7);
+        
         
         // Create Koch manager and set initial level
         resetZoom();
@@ -206,6 +237,31 @@ public class JSF31KochFractalFX extends Application {
         
         // Draw line
         gc.strokeLine(e1.X1,e1.Y1,e1.X2,e1.Y2);
+    }
+    
+    public void drawWhiteEdge(Edge e) {
+        // Graphics
+        GraphicsContext gc = kochPanel.getGraphicsContext2D();
+
+        // Adjust edge for zoom and drag
+        Edge e1 = edgeAfterZoomAndDrag(e);
+
+        // Set line color
+        gc.setStroke(Color.WHITE);
+
+        // Set line width depending on level
+        if (currentLevel <= 3) {
+            gc.setLineWidth(2.0);
+        }
+        else if (currentLevel <=5 ) {
+            gc.setLineWidth(1.5);
+        }
+        else {
+            gc.setLineWidth(1.0);
+        }
+
+        // Draw line
+        gc.strokeLine(e1.X1, e1.Y1, e1.X2, e1.Y2);
     }
     
     public void setTextNrEdges(String text) {
@@ -299,6 +355,29 @@ public class JSF31KochFractalFX extends Application {
                 e.color);
     }
 
+    /**
+     * Several methods to get the labels and progress bars.
+     * @return Progress bars and labels.
+     */
+    public ProgressBar getProgressBarLeft() {
+        return progressBarLeft;
+    }
+    public ProgressBar getProgressBarRight() {
+        return progressBarRight;
+    }
+    public ProgressBar getProgressBarBottom() {
+        return progressBarBottom;
+    }
+    public Label getLblLeftCalc() {
+        return lblLeftCalc;
+    }
+    public Label getLblRightCalc() {
+        return lblRightCalc;
+    }
+    public Label getLblBottomCalc() {
+        return lblBottomCalc;
+    }
+    
     /**
      * The main() method is ignored in correctly deployed JavaFX application.
      * main() serves only as fallback in case the application can not be
